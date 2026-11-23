@@ -1,49 +1,31 @@
-# Our Finance — household finance app starter
+# Our Finance v2 — household finance app
 
-This is a mobile-first React/PWA starter for a household with two separate logins (iPhone + Android), one shared Supabase/PostgreSQL database, A–F main-category and subcategory dropdowns, and a transaction ledger.
+This is an updated React/PWA source package for the existing Our Finance Supabase project.
 
-## Included
-- Responsive phone-friendly interface, installable as a home-screen web app.
-- Email/password sign-up and sign-in using Supabase Auth.
-- First user creates a household; second user joins with an invite code.
-- Shared transaction database with row-level security.
-- Every transaction stores the authenticated user ID.
-- A–F dropdown categories, including separate Full-time Maid, Cleaning Maid, Car Washer and Herbalife Shake subcategories.
-- Income, expense, investment, debt payment, transfer and refund transaction types.
-- Monthly totals and a transaction list with person filter.
-- Rule-based category suggestions; no LLM API is used in this first version.
+## v2 changes
+- Loads all household transactions in pages of 500; no silent 500-row cutoff.
+- Shows a visible database error and retry action instead of silently replacing failed reads with an empty list.
+- Uses India/local calendar dates for the default entry date and exact month start/end boundaries.
+- Adds Family Overview, My Expenses and Husband's Expenses views.
+- Adds person-wise monthly totals and separate totals for Income, Expense, Investment, Debt Payment, Refund and Transfer.
+- Keeps transfers separate from consumption spending.
+- Adds transaction editing and deletion for the signed-in user's own records (subject to existing RLS).
+- Prevents repeated form submissions while saving and only confirms after Supabase confirms the write.
+- Retains the existing category dropdowns and local category suggestions.
 
-## Important: this is not yet a live deployed app
-It is the application source and database setup. To connect both phones, a Supabase project and a frontend deployment are required. I cannot create accounts or deploy into your personal cloud services without your explicit access/setup. Do not enter real financial data until setup and access rules have been checked.
+## Important deployment notes
+1. This package is intended to replace the source in the existing GitHub repository connected to Vercel. Do not create a new Supabase project.
+2. Keep the existing Vercel environment variables `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. The URL must be the project base URL, not `/rest/v1/`; the key must be the public anon/publishable key, never `service_role`.
+3. Before deploying, keep a copy of the current GitHub branch so rollback is possible.
+4. In Supabase SQL Editor, run `supabase/upgrade_v2.sql`. It is additive: it grants the app-role permissions already needed by the UI and creates indexes; it does not delete or rewrite existing data.
+5. Commit/push the updated source to the same GitHub repository and let Vercel deploy. Verify the deployment URL before using it.
+6. Test with small test entries from both household accounts before importing or entering a full month's records.
 
-## Setup
-1. Create a project at https://supabase.com.
-2. In Supabase SQL Editor, run all of `supabase/schema.sql`.
-3. In Supabase Authentication settings, configure email sign-in and your preferred email-confirmation policy.
-4. Copy the Project URL and public anon/publishable key from Project Settings → API.
-5. Copy `.env.example` to `.env` and fill `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
-6. Install Node.js LTS, then run:
-   ```bash
-   npm install
-   npm run dev
-   ```
-7. Deploy the project to a static host (for example, Vercel or Netlify) and add the same environment variables to its project settings.
-8. Open the deployed URL on the first phone, create an account and create the household. Share the invite code. On the second phone, create a separate account and join with that code.
-9. iPhone: Safari → Share → Add to Home Screen. Android: Chrome → menu → Install app / Add to Home Screen.
+## Existing data
+The migration does not drop tables, truncate rows, recreate households, or reset accounts. The app reads existing `households`, `household_members`, and `transactions` tables.
 
-## Category outline
-A. Kitchen & Food: Monthly Ration / Bulk Grocery; Daily Food & Dairy; Outside Food & Dining.
-B. Personal & Household: Personal Care; Household Cleaning; Household Supplies; Clothing & Footwear; Medical & Healthcare; Herbalife Shake (separate); Other Nutrition Products; Child Expenses; Home Maintenance; Domestic Help – Full-time Maid; Cleaning Maid; Car Washer; Cook; Other.
-C. Vehicle & Transportation: Petrol; Diesel; EV Charging / Car Electricity; Servicing; Insurance; Tyres & Repairs; FASTag / Toll; Parking; Public Transport / Taxi.
-D. Home Bills & Utilities: Electricity; Water; Gas; Broadband; Mobile; DTH/Cable; Society Maintenance.
-E. Lifestyle & Miscellaneous: Shopping; Entertainment; Travel & Holidays; Gifts; Subscriptions; Donations; Other.
-F. Financial Commitments: Loan EMIs; Life/Health Insurance; PPF; Mutual Funds/SIP; Stocks; FD/RD; Taxes; Other Investment.
-
-## Privacy and security defaults
-The included SQL allows both household members to read all household transactions, while each member can insert transactions as themselves and update/delete only their own entries. This is the shared-visibility option. If you prefer private individual transactions with only combined totals shared, the RLS policies and reporting design must be changed before entering real data. Never put a Supabase service-role key or an LLM API secret in frontend code. No bank credentials, card numbers or PINs are collected.
-
-## Next development items
-- Edit/delete transaction UI and recurring bills.
-- Separate person-wise analytics and combined dashboard refinements.
-- Budget, assets, liabilities and goal modules.
-- Server-side AI monthly analysis via an Edge Function, only after deciding the privacy policy and data minimisation rules.
+## Current limitations to review before production use
+- The month selector currently controls the overview; the transaction ledger shows all loaded transactions with pagination.
+- The household view assumes two members for the labels “My Expenses” and “Husband's Expenses”; the partner view means the other household member, not a fixed gender identity in the database.
+- Transfers are displayed separately and excluded from the monthly position calculation. Refunds are displayed separately; they are not automatically netted against the original expense because the database has no original-transaction linkage.
+- This app is a household ledger, not a bank reconciliation or tax/accounting system.
